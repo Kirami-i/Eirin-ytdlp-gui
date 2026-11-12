@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.spec
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Окружения
+.venv/
+venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# ОС и логи
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Артефакты приложения
+Eirin.exe
+settings.json
+downloads/
