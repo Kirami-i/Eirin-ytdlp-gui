@@ -6,9 +6,23 @@ from typing import Any
 
 from ..config import Settings
 from .formats import AUDIO_ONLY_SELECTOR, BEST_SELECTOR, parse_rate
+from .system import detect_js_runtimes
 
 DEFAULT_TEMPLATE = "%(title)s [%(id)s].%(ext)s"
 SPONSOR_CATEGORIES = ["sponsor", "selfpromo", "interaction", "intro", "outro"]
+
+# Форматы, в которые yt-dlp умеет встраивать обложку.
+THUMBNAIL_AUDIO_FORMATS = frozenset({"mp3", "m4a", "opus", "flac", "ogg", "oga"})
+THUMBNAIL_VIDEO_CONTAINERS = frozenset({"mp4", "mkv", "m4v", "mov", "mka"})
+
+
+def thumbnail_embedding_supported(settings: Settings, *, audio_only: bool) -> bool:
+    """Поддерживает ли итоговый контейнер встраивание обложки."""
+    if audio_only:
+        return (settings.audio_format or "").strip().lower() in THUMBNAIL_AUDIO_FORMATS
+    container = (settings.container or "auto").strip().lower()
+    return container in THUMBNAIL_VIDEO_CONTAINERS
+
 
 
 def _common(settings: Settings) -> dict[str, Any]:
@@ -32,6 +46,12 @@ def _common(settings: Settings) -> dict[str, Any]:
     rate = parse_rate(settings.rate_limit)
     if rate:
         options["ratelimit"] = rate
+    runtimes = detect_js_runtimes()
+    if runtimes:
+        options["js_runtimes"] = runtimes
+    if settings.allow_remote_components:
+        # Официальный EJS-скрипт yt-dlp: нужен YouTube для полного списка форматов.
+        options["remote_components"] = {"ejs:github"}
     return options
 
 
@@ -106,7 +126,9 @@ def build_download_options(
     if settings.embed_metadata:
         postprocessors.append({"key": "FFmpegMetadata", "add_metadata": True})
 
-    if settings.embed_thumbnail:
+    if settings.embed_thumbnail and thumbnail_embedding_supported(
+        settings, audio_only=audio_only
+    ):
         options["writethumbnail"] = True
         postprocessors.append({"key": "EmbedThumbnail", "already_have_thumbnail": False})
 

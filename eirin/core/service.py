@@ -11,7 +11,11 @@ from PySide6.QtCore import QThread, Signal
 
 from ..config import Settings
 from .jobs import DownloadJob, MediaInfo
-from .options import build_download_options, build_probe_options
+from .options import (
+    build_download_options,
+    build_probe_options,
+    thumbnail_embedding_supported,
+)
 
 
 class DownloadCancelled(Exception):
@@ -96,6 +100,7 @@ class DownloadWorker(QThread):
         self._job = job
         self._settings = settings
         self._cancel = threading.Event()
+        self._last_postprocessor = ""
 
     def cancel(self) -> None:
         self._cancel.set()
@@ -113,6 +118,10 @@ class DownloadWorker(QThread):
         options["progress_hooks"] = [self._on_progress]
         options["postprocessor_hooks"] = [self._on_postprocess]
         options["logger"] = _SignalLogger(self.log.emit)
+
+        warning = self._thumbnail_warning(settings)
+        if warning:
+            self.log.emit(warning)
 
         try:
             with yt_dlp.YoutubeDL(options) as ydl:
@@ -173,10 +182,31 @@ class DownloadWorker(QThread):
             payload["filename"] = data.get("filename") or ""
         self.progress.emit(payload)
 
+    def _thumbnail_warning(self, settings: Settings) -> str | None:
+        if not settings.embed_thumbnail or thumbnail_embedding_supported(
+            settings, audio_only=self._job.audio_only
+        ):
+            return None
+        if self._job.audio_only:
+            audio_format = (settings.audio_format or "").upper()
+            return (
+                f"⚠ Обложка не будет встроена: формат {audio_format} не поддерживает "
+                "обложки (доступны MP3, M4A, Opus, FLAC, OGG)."
+            )
+        container = (settings.container or "auto").lower()
+        if container == "auto":
+            return (
+                "⚠ Обложка не будет встроена: контейнер выбирается автоматически. "
+                "Укажите MP4 или MKV в настройках, чтобы встраивать обложку."
+            )
+        return f"⚠ Обложка не будет встроена: контейнер {container.upper()} не поддерживает обложки."
+
     def _on_postprocess(self, data: dict[str, Any]) -> None:
         if self._cancel.is_set():
             raise DownloadCancelled()
         if isinstance(data, dict) and data.get("status") == "started":
-            name = data.get("postprocessor") or "постобработка"
-            self.log.emit(f"Постобработка: {name}")
+            name = str(data.get("postprocessor") or "постобработка")
+            if name != self._last_postprocessor:
+                self._last_postprocessor = name
+                self.log.emit(f"Постобработка: {name}")
             self.progress.emit({"status": "postprocessing", "percent": None})

@@ -60,6 +60,7 @@ class Settings:
     retries: int = 10
     concurrent_downloads: int = 2
     playlist: bool = False
+    allow_remote_components: bool = True  # EJS-скрипты yt-dlp для YouTube
 
     @classmethod
     def load(cls, path: Path | None = None) -> Settings:

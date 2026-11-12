@@ -153,6 +153,10 @@ class SettingsDialog(QDialog):
 
         self._thumb_check = QCheckBox("Встраивать обложку")
         self._thumb_check.setChecked(self._settings.embed_thumbnail)
+        self._thumb_check.setToolTip(
+            "Работает для MP3, M4A, Opus, FLAC, OGG, MP4 и MKV. "
+            "Для WAV и WebM обложка не встраивается."
+        )
         form.addRow("", self._thumb_check)
 
         self._metadata_check = QCheckBox("Записывать метаданные")
@@ -186,6 +190,14 @@ class SettingsDialog(QDialog):
         self._rate_edit.setPlaceholderText("например, 5M (без ограничения — пусто)")
         form.addRow("Ограничение скорости:", self._rate_edit)
 
+        self._remote_components_check = QCheckBox("Загружать JS-компоненты yt-dlp (EJS)")
+        self._remote_components_check.setChecked(self._settings.allow_remote_components)
+        self._remote_components_check.setToolTip(
+            "Официальный скрипт-решатель JS-задач YouTube с GitHub. "
+            "Нужен для полного списка форматов; без него часть качества может отсутствовать."
+        )
+        form.addRow("", self._remote_components_check)
+
         return group
 
     # ------------------------------------------------------------------ логика
@@ -210,6 +222,7 @@ class SettingsDialog(QDialog):
         settings.cookies_browser = str(self._cookies_combo.currentData() or "")
         settings.proxy = self._proxy_edit.text().strip()
         settings.rate_limit = self._rate_edit.text().strip()
+        settings.allow_remote_components = self._remote_components_check.isChecked()
         return settings
 
     # ------------------------------------------------------------------ private

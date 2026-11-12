@@ -1,7 +1,11 @@
 from dataclasses import replace
 
 from eirin.config import Settings
-from eirin.core.options import build_download_options, build_probe_options
+from eirin.core.options import (
+    build_download_options,
+    build_probe_options,
+    thumbnail_embedding_supported,
+)
 
 
 def make_settings(**kwargs) -> Settings:
@@ -59,3 +63,40 @@ def test_probe_options():
     options = build_probe_options(Settings())
     assert options["skip_download"] is True
     assert options["playlistend"] == 1
+    assert options["remote_components"] == {"ejs:github"}
+
+
+def test_remote_components_can_be_disabled():
+    options = build_download_options(
+        make_settings(allow_remote_components=False), selector="best"
+    )
+    assert "remote_components" not in options
+
+
+def test_thumbnail_embedding_supported_audio():
+    assert thumbnail_embedding_supported(make_settings(audio_format="mp3"), audio_only=True)
+    assert thumbnail_embedding_supported(make_settings(audio_format="flac"), audio_only=True)
+    assert not thumbnail_embedding_supported(make_settings(audio_format="wav"), audio_only=True)
+
+
+def test_thumbnail_embedding_supported_video():
+    assert thumbnail_embedding_supported(make_settings(container="mp4"), audio_only=False)
+    assert thumbnail_embedding_supported(make_settings(container="mkv"), audio_only=False)
+    assert not thumbnail_embedding_supported(make_settings(container="auto"), audio_only=False)
+    assert not thumbnail_embedding_supported(make_settings(container="webm"), audio_only=False)
+
+
+def test_wav_skips_thumbnail_embedding():
+    settings = make_settings(audio_format="wav")
+    options = build_download_options(settings, selector="ba/b", audio_only=True)
+    keys = [item["key"] for item in options["postprocessors"]]
+    assert "EmbedThumbnail" not in keys
+    assert options["writethumbnail"] is False
+
+
+def test_mp3_embeds_thumbnail():
+    settings = make_settings(audio_format="mp3")
+    options = build_download_options(settings, selector="ba/b", audio_only=True)
+    keys = [item["key"] for item in options["postprocessors"]]
+    assert "EmbedThumbnail" in keys
+    assert options["writethumbnail"] is True
