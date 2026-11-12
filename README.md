@@ -54,15 +54,25 @@ pipx install .
 eirin
 ```
 
+Если Python ставить не хочется — скачайте `Eirin.exe` из раздела
+[Releases](https://github.com/Kirami-i/Eirin-ytdlp-gui/releases) или соберите
+его сами (см. ниже).
+
 ## Сборка в один .exe
 
 ```powershell
-pip install pyinstaller
-pyinstaller --noconfirm --windowed --name Eirin --collect-submodules yt_dlp run.py
+.\.venv\Scripts\python.exe -m pip install pyinstaller pillow
+powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 ```
 
-Готовый файл появится в `dist\Eirin.exe`. Для работы по-прежнему нужен `ffmpeg`
-в `PATH` (или положите `ffmpeg.exe` рядом с исполняемым файлом).
+Скрипт соберёт `dist\Eirin.exe` — один файл, без консольного окна, со своей
+иконкой. Первый запуск может занять несколько секунд: onefile-сборка
+распаковывается во временную папку.
+
+Иконку можно перерисовать командой `python scripts\make_icon.py`.
+
+Для работы по-прежнему нужен `ffmpeg` в `PATH` и, для YouTube, Node.js/Deno.
+Без Python на машине exe запускается сам по себе.
 
 ## Горячие клавиши
 

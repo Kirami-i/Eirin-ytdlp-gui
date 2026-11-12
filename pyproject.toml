@@ -32,6 +32,8 @@ dependencies = [
 dev = [
     "pytest>=8",
     "ruff>=0.6",
+    "pyinstaller>=6.6",
+    "pillow>=10",
 ]
 
 [project.gui-scripts]
